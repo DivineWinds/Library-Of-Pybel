@@ -18,7 +18,7 @@ _B:int = 36
 def string_to_number_1(i_string):
     if i_string and i_string[0] == '\x00':
         sign = -1
-        i_string=i_string[1:]
+        i_string = i_string[1:]
     else:
         sign = 1
     first_term = len(i_string) # sum(pow(len(charset),i) for i in range(len(iString)))
@@ -28,25 +28,25 @@ def string_to_number_1(i_string):
 def string_to_number_n(i_string):
     if i_string and i_string[0] == '\x00':
         sign = -1
-        i_string=i_string[1:]
+        i_string = i_string[1:]
         # We want to support charsets that contain "-" so we use NUL as a minus sign
     else:
         sign = 1
     # first_term == sum(pow(len(charset),i) for i in range(len(iString)))
     first_term = (len(charset)**(len(i_string)-1+1) - 1) // (len(charset)-1)
-    return sign*(first_term + sum(pow(len(charset),i)*charset.index(x)
-                                   for i,x in enumerate(i_string)))
+    return sign*(first_term + sum(pow(len(charset),i) * charset.index(x)
+                                   for i, x in enumerate(i_string)))
 
 def to_text(x):
     sign = signum(x)
-    x*=sign
+    x *= sign
     digs=charset
     length = 0
     first_term = 0 # First term of the sum string_to_number returns
     while first_term <= x:
         first_term += pow(len(digs),length)
         length+=1
-    length-=1
+    length -= 1
     first_term -= pow(len(digs),length)
     x -= first_term
     digits = []
@@ -62,9 +62,9 @@ def to_text(x):
 string_to_number = string_to_number_n
 
 # copysign might throw OverflowError
-def signum(x,/):
+def signum(x, /):
     try:
-        return abs(x)//x
+        return abs(x) // x
     except ZeroDivisionError:
         return 0
 
@@ -221,7 +221,7 @@ Mind the quotemarks.""")
         file = input_args.fcheckout
         with open(file, 'r',encoding="utf-8") as f:
             key_str = ''.join([line for line in f.readlines() if line != '\n'])[:-1]
-        text  ='\nTitle: '+get_title(key_str) + '\n'+get_page(key_str)+'\n'
+        text  ='\nTitle: ' + get_title(key_str) + '\n'+get_page(key_str) + '\n'
         print(text)
         print(key_str)
         filed(input_args, text)
@@ -260,7 +260,7 @@ def get_title(address):
     volume = address_array[3].zfill(2)
     loc_int = int(volume+shelf+wall)
     key = base_to_integer(hex_addr)
-    key -= loc_int*title_mult
+    key -= loc_int * title_mult
     str_b = integer_to_base(key)
     result = to_text(base_to_integer(str_b))
     if len(result) < LENGTH_OF_TITLE:
@@ -274,15 +274,15 @@ def get_title(address):
     return result
 
 def search_title(search_str):
-    wall = str(int(random.random()*4))
-    shelf = str(int(random.random()*5))
-    volume = str(int(random.random()*32)).zfill(2)
+    wall = str(int(random.random() * 4))
+    shelf = str(int(random.random() * 5))
+    volume = str(int(random.random() * 32)).zfill(2)
     #the string made up of all of the location numbers
     loc_str = volume + shelf + wall
     loc_int = int(loc_str) #make integer
     hex_addr = ''
     search_str = search_str[:LENGTH_OF_TITLE].ljust(LENGTH_OF_TITLE)
-    hex_addr = integer_to_base(string_to_number(search_str)+(loc_int*title_mult))
+    hex_addr = integer_to_base(string_to_number(search_str) + (loc_int * title_mult))
     key_str = hex_addr + ':' + wall + ':' + shelf + ':' + volume
     assert search_str == get_title(key_str)
     return key_str
@@ -293,7 +293,7 @@ def get_page(address):
     page = page.zfill(3)
     loc_int = int(page+volume+shelf+wall)
     key = base_to_integer(hex_addr)
-    key -= loc_int*loc_mult
+    key -= loc_int * loc_mult
     str_b = integer_to_base(key)
     result = to_text(base_to_integer(str_b))
     if len(result) < LENGTH_OF_PAGE:
@@ -301,7 +301,7 @@ def get_page(address):
         random.seed(result)
         digs = charset
         while len(result) < LENGTH_OF_PAGE:
-            result += digs[int(random.random()*len(digs))]
+            result += digs[int(random.random() * len(digs))]
     elif len(result) > LENGTH_OF_PAGE:
         result = result[-LENGTH_OF_PAGE:]
     return result
@@ -359,15 +359,15 @@ def _base_to_integer(base_number, base_string):
     """
     number = 0
     if base_number[0] == '-':
-        sign=-1
+        sign =- 1
         base_number=base_number[1:]
     else:
-        sign=1
+        sign = 1
 
     for digit in str(base_number):
         number = number * len(base_string) + base_string.index(digit)
 
-    return number*sign
+    return number * sign
 
 def base_to_integer(base_number):
     if USE_CUSTOM_ADDRESS:
