@@ -4,9 +4,60 @@ import string
 import sys
 
 import codestrings
+charset:str = codestrings.CLASSIC
+USE_CUSTOM_ADDRESS = None
+LENGTH_OF_PAGE:int = 3239
+LENGTH_OF_TITLE:int = 25
+loc_mult:int = pow(len(charset)+1, LENGTH_OF_PAGE)
+title_mult:int = pow(len(charset)+1, LENGTH_OF_TITLE)
+_B:int = 36
 
-LENGTH_OF_PAGE = 3239
-LENGTH_OF_TITLE = 25
+# This happens if someone sets charset = ' ' (Other characters don't work because exact match uses spaces for padding)
+# This means that every page of every book is the same. Why did I feel the need to handle this? I don't know
+def string_to_number_1(i_string):
+    if i_string and i_string[0] == '\x00':
+        sign = -1
+        i_string=i_string[1:]
+    else:
+        sign = 1
+    first_term = len(i_string) # sum(pow(len(charset),i) for i in range(len(iString)))
+    return sign*first_term # second term is always zero
+
+# string_to_number = to_text^-1
+def string_to_number_n(i_string):
+    if i_string and i_string[0] == '\x00':
+        sign = -1
+        i_string=i_string[1:]
+        # We want to support charsets that contain "-" so we use NUL as a minus sign
+    else:
+        sign = 1
+    # first_term == sum(pow(len(charset),i) for i in range(len(iString)))
+    first_term = (len(charset)**(len(i_string)-1+1) - 1) // (len(charset)-1)
+    return sign*(first_term + sum(pow(len(charset),i)*charset.index(x)
+                                   for i,x in enumerate(i_string)))
+
+def to_text(x):
+    sign = signum(x)
+    x*=sign
+    digs=charset
+    length = 0
+    first_term = 0 # First term of the sum string_to_number returns
+    while first_term <= x:
+        first_term += pow(len(digs),length)
+        length+=1
+    length-=1
+    first_term -= pow(len(digs),length)
+    x -= first_term
+    digits = []
+    base = len(digs)
+    while x:
+        digits.append(digs[x % base])
+        x //= base
+    digits += digs[0] * (length-len(digits))
+    if sign < 0:
+        digits = ['\x00'] + digits # We want to support charsets that contain "-" so we use NUL as a minus sign
+    return ''.join(digits)
+string_to_number = string_to_number_n
 
 # copysign might throw OverflowError
 def signum(x,/):
@@ -35,10 +86,11 @@ def filed(input_args, text):
 
 
 def test():
-    #assert stringToNumber('a') == 0, stringToNumber('a')
-    #assert stringToNumber('ba') == 29, stringToNumber('ba')
-    assert len(getPage('asaskjkfsdf:2:2:2:33')) == LENGTH_OF_PAGE, len(getPage('asasrkrtjfsdf:2:2:2:33')) # This fails without negative numbers in int2base/integer_to_base even in the original program
-    assert 'hello kitty' == toText(int(int2base(stringToNumber('hello kitty'), 36), 36))
+    #assert string_to_number('a') == 0, string_to_number('a')
+    #assert string_to_number('ba') == 29, string_to_number('ba')
+    page_length = len(getPage('asaskjkfsdf:2:2:2:33'))
+    assert page_length == LENGTH_OF_PAGE, page_length
+    assert 'hello kitty' == to_text(int(int2base(string_to_number('hello kitty'), 36), 36))
     assert int2base(4, 36) == '4', int2base(4, 36)
     assert int2base(10, 36) == 'A', int2base(10, 36)
     assert int2base(10, 36) == _integer_to_base(10, string.digits + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
@@ -125,9 +177,11 @@ Mind the quotemarks.""")
         charset = charset_modes[input_args.charset_mode]
     else:
         charset = codestrings.CLASSIC # Fall back to default
-    global stringToNumber
+    global string_to_number
     if len(charset) == 1:
-        stringToNumber = stringToNumber1
+        string_to_number = string_to_number_1
+    else:
+        string_to_number = string_to_number_n
     global loc_mult,title_mult
     loc_mult = pow(len(charset)+1, LENGTH_OF_PAGE)
     title_mult = pow(len(charset)+1, LENGTH_OF_TITLE)
@@ -178,36 +232,35 @@ def search(search_str):
     #the string made up of all of the location numbers
     loc_str = page + volume + shelf + wall
     loc_int = int(loc_str) #make integer
-    an = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     digs = charset
     hex_addr = ''
     depth = int(random.random()*(LENGTH_OF_PAGE-len(search_str)))
     #random padding that goes before the text
     front_padding = ''
-    for x in range(depth):
+    for i in range(depth):
         front_padding += digs[int(random.random()*len(digs))]
     #making random padding that goes after the text
     back_padding = ''
-    for x in range(LENGTH_OF_PAGE-(depth+len(search_str))):
+    for i in range(LENGTH_OF_PAGE-(depth+len(search_str))):
         back_padding += digs[int(random.random()*len(digs))]
     search_str = front_padding + search_str + back_padding
-    hex_addr = integer_to_base(stringToNumber(search_str)+(loc_int*loc_mult)) #change to base b (b depends on if -u is passed) and add loc_int, then make string
+    hex_addr = integer_to_base(string_to_number(search_str)+(loc_int*loc_mult)) #change to base b (b depends on if -u is passed) and add loc_int, then make string
     key_str = hex_addr + ':' + wall + ':' + shelf + ':' + volume + ':' + page
     page_text = getPage(key_str)
     assert page_text == search_str, '\npage text:\n'+page_text+'\nstrings:\n'+search_str
     return key_str
 
 def getTitle(address):
-    addressArray = address.split(':')
-    hex_addr = addressArray[0]
-    wall = addressArray[1]
-    shelf = addressArray[2]
-    volume = addressArray[3].zfill(2)
+    address_array = address.split(':')
+    hex_addr = address_array[0]
+    wall = address_array[1]
+    shelf = address_array[2]
+    volume = address_array[3].zfill(2)
     loc_int = int(volume+shelf+wall)
     key = base_to_integer(hex_addr)
     key -= loc_int*title_mult
     str_b = integer_to_base(key)
-    result = toText(base_to_integer(str_b))
+    result = to_text(base_to_integer(str_b))
     if len(result) < LENGTH_OF_TITLE:
         #adding pseudorandom chars
         random.seed(result)
@@ -227,7 +280,7 @@ def searchTitle(search_str):
     loc_int = int(loc_str) #make integer
     hex_addr = ''
     search_str = search_str[:LENGTH_OF_TITLE].ljust(LENGTH_OF_TITLE)
-    hex_addr = integer_to_base(stringToNumber(search_str)+(loc_int*title_mult))
+    hex_addr = integer_to_base(string_to_number(search_str)+(loc_int*title_mult))
     key_str = hex_addr + ':' + wall + ':' + shelf + ':' + volume
     assert search_str == getTitle(key_str)
     return key_str
@@ -240,7 +293,7 @@ def getPage(address):
     key = base_to_integer(hex_addr)
     key -= loc_int*loc_mult
     str_b = integer_to_base(key)
-    result = toText(base_to_integer(str_b))
+    result = to_text(base_to_integer(str_b))
     if len(result) < LENGTH_OF_PAGE:
         #adding pseudorandom chars
         random.seed(result)
@@ -250,50 +303,6 @@ def getPage(address):
     elif len(result) > LENGTH_OF_PAGE:
         result = result[-LENGTH_OF_PAGE:]
     return result
-
-# This happens if someone sets charset = ' ' (Other characters don't work because exact match uses spaces for padding)
-# This means that every page of every book is the same. Why did I feel the need to handle this? I don't know
-def stringToNumber1(iString):
-    if iString and iString[0] == '\x00':
-        sign = -1
-        iString=iString[1:]
-    else:
-        sign = 1
-    first_term = len(iString) # sum(pow(len(charset),i) for i in range(len(iString)))
-    return sign*first_term # second term is always zero
-
-# stringToNumber = toText^-1
-def stringToNumber(iString):
-    if iString and iString[0] == '\x00':
-        sign = -1
-        iString=iString[1:]
-        # We want to support charsets that contain "-" so we use NUL as a minus sign
-    else:
-        sign = 1
-    first_term = (len(charset)**(len(iString)-1+1) - 1) // (len(charset)-1) # sum(pow(len(charset),i) for i in range(len(iString)))
-    return sign*(first_term + sum(pow(len(charset),i)*charset.index(x) for i,x in enumerate(iString)))
-
-def toText(x):
-    sign = signum(x)
-    x*=sign
-    digs=charset
-    length = 0
-    first_term = 0 # First term of the sum stringToNumber returns
-    while first_term <= x:
-        first_term += pow(len(digs),length)
-        length+=1
-    length-=1
-    first_term -= pow(len(digs),length)
-    x -= first_term
-    digits = []
-    base = len(digs)
-    while x:
-        digits.append(digs[x % base])
-        x //= base
-    digits += digs[0] * (length-len(digits))
-    if sign < 0:
-        digits = ['\x00'] + digits # We want to support charsets that contain "-" so we use NUL as a minus sign
-    return ''.join(digits)
 
 def int2base(x, base):
     digs = string.digits + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -316,8 +325,10 @@ def _integer_to_base(number, base_string):
     for example: 2645608968347327576478451524936 (Which is 'Hello, world!') to 21646C726F77202C6F6C6C6548 (base16),
     does account for negative numbers
     """
-    if number < 0: sign = -1
-    elif number == 0: return base_string[0]
+    if number < 0:
+        sign = -1
+    elif number == 0:
+        return base_string[0]
     else: sign = 1
     number *= sign
     digits = []
