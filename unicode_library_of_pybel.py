@@ -4,6 +4,7 @@ import string
 import sys
 
 import codestrings
+
 charset:str = codestrings.CLASSIC
 USE_CUSTOM_ADDRESS = None
 LENGTH_OF_PAGE:int = 3239
@@ -57,6 +58,7 @@ def to_text(x):
     if sign < 0:
         digits = ['\x00'] + digits # We want to support charsets that contain "-" so we use NUL as a minus sign
     return ''.join(digits)
+
 string_to_number = string_to_number_n
 
 # copysign might throw OverflowError
@@ -88,14 +90,14 @@ def filed(input_args, text):
 def test():
     #assert string_to_number('a') == 0, string_to_number('a')
     #assert string_to_number('ba') == 29, string_to_number('ba')
-    page_length = len(getPage('asaskjkfsdf:2:2:2:33'))
+    page_length = len(get_page('asaskjkfsdf:2:2:2:33'))
     assert page_length == LENGTH_OF_PAGE, page_length
     assert 'hello kitty' == to_text(int(int2base(string_to_number('hello kitty'), 36), 36))
     assert int2base(4, 36) == '4', int2base(4, 36)
     assert int2base(10, 36) == 'A', int2base(10, 36)
     assert int2base(10, 36) == _integer_to_base(10, string.digits + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
     test_string = '.................................................'
-    assert test_string in getPage(search(test_string))
+    assert test_string in get_page(search(test_string))
     print ('Tests completed')
 
 
@@ -187,16 +189,16 @@ Mind the quotemarks.""")
     title_mult = pow(len(charset)+1, LENGTH_OF_TITLE)
     if input_args.checkout:
         key_str = input_args.checkout
-        text  ='\nTitle: '+getTitle(key_str) + '\n'+getPage(key_str)+'\n'
+        text  ='\nTitle: '+get_title(key_str) + '\n'+get_page(key_str)+'\n'
         print(text)
         filed(input_args, text)
     elif input_args.search:
         search_str = text_prep(input_args.search)
         key_str = search(text_prep(search_str))
-        text1 = '\nPage which includes this text:\n' + getPage(key_str)+'\n\n@ address '+key_str+'\n'
+        text1 = '\nPage which includes this text:\n' + get_page(key_str)+'\n\n@ address '+key_str+'\n'
         only_key_str = search(search_str.ljust(LENGTH_OF_PAGE))
-        text2 = '\nPage which contains only this text:\n'+ getPage(only_key_str)+'\n\n@ address '+only_key_str+'\n'
-        text3 = '\nTitle which contains this text:\n@ address '+ searchTitle(search_str)
+        text2 = '\nPage which contains only this text:\n'+ get_page(only_key_str)+'\n\n@ address '+only_key_str+'\n'
+        text3 = '\nTitle which contains this text:\n@ address '+ search_title(search_str)
         text = text1 + text2 + text3
         print(text)
         filed(input_args, text)
@@ -208,10 +210,10 @@ Mind the quotemarks.""")
             lines = ''.join([line for line in f.readlines() if line != '\n'])
         search_str = text_prep(lines)
         key_str = search(search_str)
-        text1 = '\nPage which includes this text:\n'+ getPage(key_str) +'\n\n@ address '+ key_str +'\n'
+        text1 = '\nPage which includes this text:\n'+ get_page(key_str) +'\n\n@ address '+ key_str +'\n'
         only_key_str = search(search_str.ljust(LENGTH_OF_PAGE))
-        text2 = '\nPage which contains only this text:\n' + getPage(only_key_str) + '\n\n@ address '+ only_key_str +'\n'
-        text3 = '\nTitle which contains this text:\n@ address ' + searchTitle(search_str) +'\n'
+        text2 = '\nPage which contains only this text:\n' + get_page(only_key_str) + '\n\n@ address '+ only_key_str +'\n'
+        text3 = '\nTitle which contains this text:\n@ address ' + search_title(search_str) +'\n'
         text = text1 + text2 + text3
         print(text)
         filed(input_args, text)
@@ -219,7 +221,7 @@ Mind the quotemarks.""")
         file = input_args.fcheckout
         with open(file, 'r',encoding="utf-8") as f:
             key_str = ''.join([line for line in f.readlines() if line != '\n'])[:-1]
-        text  ='\nTitle: '+getTitle(key_str) + '\n'+getPage(key_str)+'\n'
+        text  ='\nTitle: '+get_title(key_str) + '\n'+get_page(key_str)+'\n'
         print(text)
         print(key_str)
         filed(input_args, text)
@@ -246,11 +248,11 @@ def search(search_str):
     search_str = front_padding + search_str + back_padding
     hex_addr = integer_to_base(string_to_number(search_str)+(loc_int*loc_mult)) #change to base b (b depends on if -u is passed) and add loc_int, then make string
     key_str = hex_addr + ':' + wall + ':' + shelf + ':' + volume + ':' + page
-    page_text = getPage(key_str)
+    page_text = get_page(key_str)
     assert page_text == search_str, '\npage text:\n'+page_text+'\nstrings:\n'+search_str
     return key_str
 
-def getTitle(address):
+def get_title(address):
     address_array = address.split(':')
     hex_addr = address_array[0]
     wall = address_array[1]
@@ -271,7 +273,7 @@ def getTitle(address):
         result = result[-LENGTH_OF_TITLE:]
     return result
 
-def searchTitle(search_str):
+def search_title(search_str):
     wall = str(int(random.random()*4))
     shelf = str(int(random.random()*5))
     volume = str(int(random.random()*32)).zfill(2)
@@ -282,10 +284,10 @@ def searchTitle(search_str):
     search_str = search_str[:LENGTH_OF_TITLE].ljust(LENGTH_OF_TITLE)
     hex_addr = integer_to_base(string_to_number(search_str)+(loc_int*title_mult))
     key_str = hex_addr + ':' + wall + ':' + shelf + ':' + volume
-    assert search_str == getTitle(key_str)
+    assert search_str == get_title(key_str)
     return key_str
 
-def getPage(address):
+def get_page(address):
     hex_addr, wall, shelf, volume, page = address.split(':')
     volume = volume.zfill(2)
     page = page.zfill(3)
@@ -306,8 +308,10 @@ def getPage(address):
 
 def int2base(x, base):
     digs = string.digits + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    if x < 0: sign = -1
-    elif x == 0: return digs[0]
+    if x < 0:
+        sign = -1
+    elif x == 0:
+        return digs[0]
     else: sign = 1
     x *= sign
     digits = []
@@ -362,7 +366,7 @@ def _base_to_integer(base_number, base_string):
 
     for digit in str(base_number):
         number = number * len(base_string) + base_string.index(digit)
-    
+
     return number*sign
 
 def base_to_integer(base_number):
