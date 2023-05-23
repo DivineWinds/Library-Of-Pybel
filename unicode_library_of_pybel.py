@@ -356,7 +356,6 @@ def _base_to_integer(base_number, base_string):
 
 def base_to_integer(base_number):
     if USE_CUSTOM_ADDRESS:
-        print("NO")
         return _base_to_integer(base_number,USE_CUSTOM_ADDRESS)
     else:
         return int(base_number, _B)
