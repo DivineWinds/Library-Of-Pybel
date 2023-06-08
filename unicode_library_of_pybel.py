@@ -12,11 +12,12 @@ LENGTH_OF_TITLE:int = 25
 loc_mult:int = pow(len(charset)+1, LENGTH_OF_PAGE)
 title_mult:int = pow(len(charset)+1, LENGTH_OF_TITLE)
 _B:int = 36
+MINUS_SIGN = '\x7f' # We want to support charsets that contain "-" so we use DEL as a minus sign in the following functions
 
 # This happens if someone sets charset = ' ' (Other characters don't work because exact match uses spaces for padding)
 # This means that every page of every book is the same. Why did I feel the need to handle this? I don't know
 def string_to_number_1(i_string):
-    if i_string and i_string[0] == '\x00':
+    if i_string and i_string[0] == MINUS_SIGN:
         sign = -1
         i_string = i_string[1:]
     else:
@@ -26,10 +27,9 @@ def string_to_number_1(i_string):
 
 # string_to_number = to_text^-1
 def string_to_number_n(i_string):
-    if i_string and i_string[0] == '\x00':
+    if i_string and i_string[0] == MINUS_SIGN:
         sign = -1
         i_string = i_string[1:]
-        # We want to support charsets that contain "-" so we use NUL as a minus sign
     else:
         sign = 1
     # first_term == sum(pow(len(charset),i) for i in range(len(iString)))
@@ -41,6 +41,7 @@ def to_text(x):
     sign = signum(x)
     x *= sign
     digs=charset
+    assert MINUS_SIGN not in digs
     length = 0
     first_term = 0 # First term of the sum string_to_number returns
     while first_term <= x:
@@ -56,7 +57,7 @@ def to_text(x):
         x //= base
     digits += digs[0] * (length-len(digits))
     if sign < 0:
-        digits = ['\x00'] + digits # We want to support charsets that contain "-" so we use NUL as a minus sign
+        digits = [MINUS_SIGN] + digits
     return ''.join(digits)
 
 string_to_number = string_to_number_n
