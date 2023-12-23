@@ -49,7 +49,7 @@ def to_text(x: int) -> str:
     length = 0
     first_term = 0 # First term of the sum string_to_number returns
     d = pow(len(digs),length)
-    while first_term < x-d+1:
+    while first_term+d <= x:
         first_term += d
         length += 1
         d = pow(len(digs),length)
