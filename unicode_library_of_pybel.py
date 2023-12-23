@@ -1,3 +1,4 @@
+#%%
 import argparse
 import random
 import string
@@ -47,11 +48,11 @@ def to_text(x: int) -> str:
         assert MINUS_SIGN not in digs
     length = 0
     first_term = 0 # First term of the sum string_to_number returns
-    while first_term <= x:
-        first_term += pow(len(digs),length)
-        length+=1
-    length -= 1
-    first_term -= pow(len(digs),length)
+    d = pow(len(digs),length)
+    while first_term < x-d+1:
+        first_term += d
+        length += 1
+        d = pow(len(digs),length)
     x -= first_term
     digits = []
     base = len(digs)
@@ -388,3 +389,5 @@ def base_to_integer(base_number: str) -> int:
 
 if __name__ == "__main__":
     main()
+
+# %%
